@@ -227,6 +227,9 @@ export function TokensView(props: { session: MountedSession }) {
               </tfoot>
             </table>
             <div class="ts-fresh">{ctx.t("row.fresh", { value: int.format(shown().fresh) })}</div>
+            <div class="ts-db" title={result()!.db}>
+              {ctx.t("row.database", { path: result()!.db })}
+            </div>
           </div>
         )}
       </Show>
@@ -254,5 +257,6 @@ export const panelCss = `
 .ts-provider { color: var(--v2-text-text-muted, rgba(127,127,127,.9)); }
 .ts-strong { font-weight: 600; }
 .ts-fresh, .ts-hint { color: var(--v2-text-text-muted, rgba(127,127,127,.9)); }
+.ts-db { color: var(--v2-text-text-faint, rgba(127,127,127,.7)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ts-error { color: var(--v2-red, #e5484d); }
 `

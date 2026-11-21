@@ -55,6 +55,36 @@ git clone https://github.com/edwardgra4ev/opencode-token-stats-gui-plugin \
 }
 ```
 
+## Расположение базы
+
+Плагин ищет `opencode.db` там, где OpenCode хранит свои данные:
+
+| ОС | Путь |
+| --- | --- |
+| Linux | `$XDG_DATA_HOME/opencode/opencode.db`, по умолчанию `~/.local/share/opencode/opencode.db` |
+| macOS | `~/Library/Application Support/opencode/opencode.db` |
+| Windows | `%APPDATA%\opencode\opencode.db` |
+
+Сборки по каналам (`opencode-dev.db`, `opencode-beta.db`, …) подхватываются автоматически,
+если `opencode.db` нет. Найденный путь показывается под таблицей и в баннере ошибки.
+
+Чтобы указать другой файл, задайте опцию `db` (абсолютный путь, `~/…` или путь относительно
+каталога данных выше):
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "./plugins/token-stats",
+      "options": { "db": "~/backups/opencode.db" }
+    }
+  ],
+}
+```
+
+Работает и та же переменная, что использует сам OpenCode: `OPENCODE_DB`. Приоритет: опция
+плагина, затем `OPENCODE_DB`, затем путь по умолчанию для платформы.
+
 ## Использование
 
 - Откройте боковую панель, нажмите `+` и выберите **Tokens**; или выполните `/tokens`;
@@ -78,9 +108,8 @@ git -C ~/.config/opencode/plugins/token-stats pull
 
 ## Как считаются цифры
 
-- Источник: `$XDG_DATA_HOME/opencode/opencode.db` (по умолчанию
-  `~/.local/share/opencode/opencode.db`), таблица `session_message`, строки
-  `type = 'assistant'`.
+- Источник: каталог данных OpenCode, таблица `session_message`, строки
+  `type = 'assistant'` (см. [Расположение базы](#расположение-базы)).
 - Бакеты токенов — из поля `tokens` сообщения: `input`, `output`, `reasoning`,
   `cache.read`, `cache.write`; цена — из `cost`.
 - `total = вход + выход + рассуждения + чтение кэша + запись кэша`.

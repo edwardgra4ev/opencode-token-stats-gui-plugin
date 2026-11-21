@@ -4,6 +4,18 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions use
 [SemVer](https://semver.org/).
 
+## [0.3.0] - 2026-11-21
+
+### Added
+
+- Configurable database location: the `db` plugin option (`opencode.json` → `plugins` entry
+  with `options`) or the `OPENCODE_DB` environment variable. `~` and paths relative to the
+  OpenCode data directory are accepted.
+- Platform-aware defaults: `$XDG_DATA_HOME`/`~/.local/share` on Linux, `~/Library/Application
+  Support` on macOS, `%APPDATA%` on Windows; channel builds such as `opencode-dev.db` are
+  detected when `opencode.db` is absent.
+- The resolved database path is shown under the table and included in the error banner.
+
 ## [0.2.0] - 2026-11-21
 
 ### Added

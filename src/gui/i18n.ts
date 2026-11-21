@@ -24,6 +24,7 @@ export const en = {
   "column.cost": "Cost",
   "row.total": "TOTAL",
   "row.fresh": "Fresh (input+output+reasoning): {{value}}",
+  "row.database": "Database: {{path}}",
 }
 
 export const ru = {
@@ -52,4 +53,5 @@ export const ru = {
   "column.cost": "Цена",
   "row.total": "ИТОГО",
   "row.fresh": "Свежие (вход+выход+рассужд.): {{value}}",
+  "row.database": "База: {{path}}",
 }

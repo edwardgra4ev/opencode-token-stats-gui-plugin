@@ -43,6 +43,7 @@ export const TokenStats = Rpc.define({
         properties: {
           range: { type: "string", enum: ["all", "today", "7d"] },
           directory: { type: "string" },
+          db: { type: "string" },
         },
         required: ["range"],
         additionalProperties: false,
@@ -52,11 +53,12 @@ export const TokenStats = Rpc.define({
         properties: {
           range: { type: "string" },
           directory: { type: "string" },
+          db: { type: "string" },
           rows: { type: "array", items: statsRow },
           totals,
           fresh: { type: "number" },
         },
-        required: ["range", "rows", "totals", "fresh"],
+        required: ["range", "db", "rows", "totals", "fresh"],
         additionalProperties: false,
       },
       errors: {

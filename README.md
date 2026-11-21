@@ -54,6 +54,37 @@ relative to the config directory:
 }
 ```
 
+## Database location
+
+The plugin looks for `opencode.db` where OpenCode itself keeps its data:
+
+| OS | Path |
+| --- | --- |
+| Linux | `$XDG_DATA_HOME/opencode/opencode.db`, default `~/.local/share/opencode/opencode.db` |
+| macOS | `~/Library/Application Support/opencode/opencode.db` |
+| Windows | `%APPDATA%\opencode\opencode.db` |
+
+Channel builds (`opencode-dev.db`, `opencode-beta.db`, …) are picked up automatically when
+`opencode.db` does not exist. The resolved path is shown under the table and in the error
+banner.
+
+To point the plugin at another file, set the `db` option (absolute, `~/…`, or relative to
+the data directory above):
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "./plugins/token-stats",
+      "options": { "db": "~/backups/opencode.db" }
+    }
+  ],
+}
+```
+
+The same variable OpenCode uses also works: `OPENCODE_DB`. Precedence is the plugin option,
+then `OPENCODE_DB`, then the platform default.
+
 ## Usage
 
 - Open the side panel, click `+`, pick **Tokens**; or run `/tokens`; or use the command
@@ -77,9 +108,8 @@ Then restart Desktop (or reload plugins from the app). Releases are tagged `vX.Y
 
 ## How the numbers are computed
 
-- Source: `$XDG_DATA_HOME/opencode/opencode.db` (default
-  `~/.local/share/opencode/opencode.db`), table `session_message`, rows with
-  `type = 'assistant'`.
+- Source: the OpenCode data directory, table `session_message`, rows with
+  `type = 'assistant'` (see [Database location](#database-location)).
 - Token buckets come from the message's `tokens` field: `input`, `output`, `reasoning`,
   `cache.read`, `cache.write`; `cost` from the message.
 - `total = input + output + reasoning + cache read + cache write`.
