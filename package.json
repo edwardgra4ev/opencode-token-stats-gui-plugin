@@ -1,6 +1,6 @@
 {
   "name": "opencode-token-stats-gui-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenCode Desktop GUI plugin: per-model token usage panel",
   "private": true,
   "type": "module",

@@ -60,6 +60,10 @@ relative to the config directory:
   palette.
 - Pick a period and, optionally, **This project** to limit the numbers to the directory of
   the session you are in.
+- Click a column header to sort by it, click again to reverse; the model column sorts
+  alphabetically. The first click sorts numbers descending.
+- Type in **Search models** to filter rows by `provider/model`; TOTAL and the fresh figure
+  follow the visible rows.
 - **Refresh** re-reads the database; there is no polling.
 
 ## Update

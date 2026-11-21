@@ -4,6 +4,15 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions use
 [SemVer](https://semver.org/).
 
+## [0.2.0] - 2026-11-21
+
+### Added
+
+- Sortable columns: click a header to sort, click again to reverse. The model column sorts
+  alphabetically, numeric columns start descending.
+- Search field filtering rows by `provider/model`; the TOTAL row and the "fresh" figure
+  follow the visible rows, and a dedicated "no matches" state replaces the empty one.
+
 ## [0.1.0] - 2026-11-21
 
 ### Added
