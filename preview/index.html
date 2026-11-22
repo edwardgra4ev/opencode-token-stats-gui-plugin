@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>token-stats preview</title>
+<style>
+  :root {
+    --bg: #161616;
+    --panel: #1e1e1e;
+    --panel-2: #232323;
+    --line: rgba(255, 255, 255, .10);
+    --line-strong: rgba(255, 255, 255, .18);
+    --text: #e8e8e8;
+    --muted: rgba(255, 255, 255, .48);
+    --faint: rgba(255, 255, 255, .30);
+    --accent: #e9b47c;
+    --accent-dim: rgba(233, 180, 124, .14);
+    --row-h: 26px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid;
+    place-items: center;
+    background: #0e0e0e;
+    font-family: Lato, "DejaVu Sans", system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .window {
+    width: 1240px;
+    height: 660px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 32px 90px rgba(0, 0, 0, .65);
+  }
+  .titlebar {
+    height: 38px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    background: #131313;
+    border-bottom: 1px solid var(--line);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #333; }
+  .titlebar .title { margin-left: 8px; font-size: 12px; color: var(--muted); letter-spacing: .2px; }
+  .titlebar .title b { color: var(--text); font-weight: 600; }
+
+  .body { flex: 1; display: flex; min-height: 0; }
+
+  /* left: nav + chat skeleton, purely background context */
+  .nav {
+    width: 54px; flex: none; display: flex; flex-direction: column; align-items: center;
+    gap: 16px; padding-top: 16px; border-right: 1px solid var(--line); background: #141414;
+  }
+  .nav i { width: 20px; height: 20px; border-radius: 5px; background: rgba(255, 255, 255, .07); }
+  .nav i.active { background: rgba(255, 255, 255, .16); }
+
+  .chat { flex: 1; min-width: 0; padding: 22px 26px; display: flex; flex-direction: column; gap: 18px; }
+  .chat .head { display: flex; align-items: baseline; gap: 10px; }
+  .chat .head h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .2px; }
+  .chat .head span { font-size: 11px; color: var(--faint); }
+  .bubble { border: 1px solid var(--line); border-radius: 8px; padding: 13px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble.me { background: rgba(255, 255, 255, .03); }
+  .bubble .who { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--faint); }
+  .bubble .who em { font-style: normal; color: var(--accent); }
+  .bar { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .08); }
+  .bar.w90 { width: 90%; } .bar.w75 { width: 75%; } .bar.w60 { width: 60%; } .bar.w45 { width: 45%; }
+  .bar.w30 { width: 30%; }
+  .tool { display: inline-flex; gap: 6px; align-items: center; width: fit-content; font-size: 11px; color: var(--muted);
+          border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+  .tool::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #6abf69; }
+
+  /* right: the actual plugin panel, faithful to panel.tsx */
+  .panel {
+    width: 700px; flex: none; min-height: 0; display: flex; flex-direction: column;
+    border-left: 1px solid var(--line-strong); background: var(--panel);
+  }
+  .panel-head {
+    height: 40px; flex: none; display: flex; align-items: center; gap: 9px; padding: 0 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head .icon { width: 15px; height: 15px; color: var(--muted); }
+  .panel-head .name { font-size: 13px; font-weight: 600; letter-spacing: .2px; }
+  .panel-head .close { margin-left: auto; color: var(--faint); font-size: 15px; line-height: 1; }
+
+  .ts-root { display: flex; flex-direction: column; height: 100%; padding: 8px 10px 8px; font-size: 12px; gap: 8px; min-height: 0; }
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; height: 30px; }
+
+  .select { position: relative; }
+  .select .field {
+    display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 9px;
+    border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2);
+    font-size: 12px; color: var(--text);
+  }
+  .select .field .chev { font-size: 9px; color: var(--muted); transition: transform .15s; }
+  .select.open .field .chev { transform: rotate(180deg); }
+  .select.focus .field { border-color: rgba(233, 180, 124, .55); }
+  .menu {
+    position: absolute; z-index: 20; top: 30px; left: 0; min-width: 132px; padding: 4px;
+    background: #2a2a2a; border: 1px solid var(--line-strong); border-radius: 7px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .55); display: none;
+  }
+  .select.open .menu { display: block; }
+  .menu div { padding: 6px 8px; border-radius: 5px; font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 7px; }
+  .menu div .check { width: 9px; color: var(--accent); font-size: 10px; }
+  .menu div.hover { background: rgba(255, 255, 255, .07); }
+  .menu div.sel { color: var(--accent); }
+
+  .switch { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+  .switch .track {
+    width: 26px; height: 15px; border-radius: 999px; background: rgba(255, 255, 255, .16);
+    position: relative; transition: background .15s;
+  }
+  .switch .track::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%;
+    background: #d5d5d5; transition: transform .15s, background .15s;
+  }
+  .switch.on { color: var(--text); }
+  .switch.on .track { background: var(--accent); }
+  .switch.on .track::after { transform: translateX(11px); background: #242424; }
+
+  .search {
+    width: 176px; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px;
+    border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2);
+    color: var(--text);
+  }
+  .search.focus { border-color: rgba(233, 180, 124, .55); }
+  .search .mag { width: 11px; height: 11px; flex: none; color: var(--faint); }
+  .search .q { font-size: 12px; white-space: nowrap; }
+  .search .q.empty { color: var(--faint); }
+  .caret { width: 1px; height: 14px; background: var(--accent); display: none; }
+  .search.focus .caret { display: block; }
+
+  .btn {
+    margin-left: auto; height: 26px; display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 6px;
+    background: var(--panel-2); font-size: 12px; color: var(--text); transition: background .12s, border-color .12s;
+  }
+  .btn.hover { background: #2e2e2e; border-color: rgba(255, 255, 255, .3); }
+  .btn .ref { width: 12px; height: 12px; color: var(--muted); }
+  .btn.busy .ref { animation: spin .55s linear infinite; color: var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .table { flex: none; overflow: hidden; position: relative; }
+  .spacer { flex: 1; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) 40px 74px 66px 56px 72px 72px 72px 60px; align-items: center; column-gap: 0; }
+  .grid > * { padding: 0 6px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .grid > *:first-child { text-align: left; }
+
+  .thead { height: 28px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; position: relative; z-index: 2; background: var(--panel); }
+  .th { display: flex; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; width: 100%; border-radius: 4px; }
+  .th.first { justify-content: flex-start; }
+  .th .arrow { font-size: 8px; opacity: .85; color: var(--accent); margin-top: 1px; }
+  .th.hover { color: var(--text); background: rgba(255, 255, 255, .05); }
+  .th.clicked { background: rgba(255, 255, 255, .08); }
+
+  .rows { position: relative; }
+  .row { position: absolute; left: 0; right: 0; height: var(--row-h); background: var(--panel); }
+  .row.even { background: #232323; }
+  .row .model { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .row .prov { color: var(--muted); }
+  .row .strong { font-weight: 600; }
+
+  .tfoot { position: relative; margin-top: 2px; border-top: 1px solid var(--line-strong); height: 30px; font-weight: 600; }
+  .tfoot .grid { height: 100%; }
+  .hintline { margin-top: 8px; color: var(--muted); font-size: 11.5px; }
+  .dbline { margin-top: 4px; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+</style>
+</head>
+<body>
+<div class="window" id="window">
+  <div class="titlebar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="title"><b>OpenCode</b> Desktop</span>
+  </div>
+  <div class="body">
+    <aside class="nav">
+      <i class="active"></i><i></i><i></i><i></i><i></i>
+    </aside>
+    <main class="chat">
+      <div class="head"><h1>token-stats-gui-plugin</h1><span>~/Dev</span></div>
+      <div class="bubble me">
+        <span class="who">You</span>
+        <span class="bar w90"></span><span class="bar w60"></span>
+      </div>
+      <div class="bubble">
+        <span class="who"><em>assistant</em> · anthropic/claude-sonnet-4-5</span>
+        <span class="bar w75"></span><span class="bar w90"></span><span class="bar w45"></span>
+        <span class="tool">build passed</span>
+      </div>
+      <div class="bubble me">
+        <span class="who">You</span>
+        <span class="bar w45"></span>
+      </div>
+    </main>
+
+    <section class="panel" id="panel">
+      <div class="panel-head">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+          <rect x="2" y="2" width="12" height="12" rx="2" /><path d="M5 11V7M8 11V5M11 11V8.5" />
+        </svg>
+        <span class="name">Tokens</span>
+        <span class="close">×</span>
+      </div>
+
+      <div class="ts-root">
+        <div class="toolbar">
+          <div class="select" id="period">
+            <div class="field"><span class="label">All time</span><span class="chev">▾</span></div>
+            <div class="menu">
+              <div data-v="all"><span class="check">✓</span>All time</div>
+              <div data-v="today"><span class="check"></span>Today</div>
+              <div data-v="7d"><span class="check"></span>7 days</div>
+            </div>
+          </div>
+
+          <span class="switch" id="projswitch">
+            <span class="track"></span><span>This project</span>
+          </span>
+
+          <div class="search" id="search">
+            <svg class="mag" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" />
+            </svg>
+            <span class="q empty" id="q">Search models</span>
+            <span class="caret" id="caret"></span>
+          </div>
+
+          <div class="btn" id="refresh">
+            <svg class="ref" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M13 8a5 5 0 1 1-1.5-3.55" /><path d="M13 3v3.2H9.8" />
+            </svg>
+            <span>Refresh</span>
+          </div>
+        </div>
+
+        <div class="table">
+          <div class="thead grid" id="thead">
+            <div class="th first" data-k="model">Model</div>
+            <div class="th" data-k="msgs">Msgs</div>
+            <div class="th" data-k="input">Input</div>
+            <div class="th" data-k="output">Output</div>
+            <div class="th" data-k="reasoning">Reason</div>
+            <div class="th" data-k="cacheRead">Cache R</div>
+            <div class="th" data-k="cacheWrite">Cache W</div>
+            <div class="th" data-k="total">Total</div>
+            <div class="th" data-k="cost">Cost</div>
+          </div>
+          <div class="rows" id="rows"></div>
+        </div>
+
+        <div>
+          <div class="tfoot grid" id="tfoot"></div>
+          <div class="hintline" id="fresh"></div>
+          <div class="dbline" id="db"></div>
+        </div>
+        <div class="spacer"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ALL = [
+    { p: "anthropic/", m: "claude-sonnet-4-5", msgs: 412, input: 1284530, output: 96412, reasoning: 12880, cacheRead: 8412900, cacheWrite: 1102340, cost: 21.84 },
+    { p: "openai/", m: "gpt-5.1", msgs: 188, input: 642180, output: 74209, reasoning: 18402, cacheRead: 3951220, cacheWrite: 512870, cost: 9.42 },
+    { p: "opencode/", m: "grok-code-fast-1", msgs: 243, input: 512340, output: 128905, reasoning: 22400, cacheRead: 1822610, cacheWrite: 0, cost: 0 },
+    { p: "google/", m: "gemini-3-pro", msgs: 96, input: 388904, output: 41220, reasoning: 9120, cacheRead: 2004880, cacheWrite: 301440, cost: 4.1 },
+    { p: "xai/", m: "grok-4", msgs: 54, input: 201884, output: 33118, reasoning: 7940, cacheRead: 902440, cacheWrite: 118220, cost: 3.2 },
+    { p: "deepseek/", m: "deepseek-v4", msgs: 121, input: 298442, output: 61220, reasoning: 14880, cacheRead: 744180, cacheWrite: 96540, cost: 0.58 },
+    { p: "zai/", m: "glm-4.6", msgs: 63, input: 144208, output: 24880, reasoning: 5120, cacheRead: 388940, cacheWrite: 44120, cost: 0.31 },
+    { p: "mistral/", m: "codestral", msgs: 18, input: 42880, output: 9410, reasoning: 1240, cacheRead: 96220, cacheWrite: 12040, cost: 0.12 },
+  ];
+  const TODAY = [
+    { p: "anthropic/", m: "claude-sonnet-4-5", msgs: 46, input: 152340, output: 11880, reasoning: 1620, cacheRead: 964220, cacheWrite: 128400, cost: 2.62 },
+    { p: "openai/", m: "gpt-5.1", msgs: 21, input: 71220, output: 8940, reasoning: 2110, cacheRead: 418880, cacheWrite: 62110, cost: 1.14 },
+    { p: "opencode/", m: "grok-code-fast-1", msgs: 31, input: 58940, output: 15220, reasoning: 2840, cacheRead: 204110, cacheWrite: 0, cost: 0 },
+    { p: "deepseek/", m: "deepseek-v4", msgs: 14, input: 34220, output: 6910, reasoning: 1440, cacheRead: 88140, cacheWrite: 11240, cost: 0.07 },
+    { p: "zai/", m: "glm-4.6", msgs: 6, input: 12480, output: 2140, reasoning: 460, cacheRead: 32110, cacheWrite: 3820, cost: 0.03 },
+  ];
+
+  const ROW_H = 26;
+  const T = 11.6; // total loop length, seconds
+  const nf = new Intl.NumberFormat("en-US");
+  const money = (v) => v.toFixed(2);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
+  const easeInOut = (x) => { x = clamp(x); return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const label = (r) => r.p + r.m;
+
+  function sum(rows) {
+    const t = { msgs: 0, input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0 };
+    for (const r of rows) {
+      t.msgs += r.msgs; t.input += r.input; t.output += r.output; t.reasoning += r.reasoning;
+      t.cacheRead += r.cacheRead; t.cacheWrite += r.cacheWrite; t.cost += r.cost;
+    }
+    for (const r of rows) r.total = r.input + r.output + r.reasoning + r.cacheRead + r.cacheWrite;
+    t.total = t.input + t.output + t.reasoning + t.cacheRead + t.cacheWrite;
+    return t;
+  }
+  const DEFAULT_KEY = (r) => r.input + r.output + r.cacheRead;
+  const defaultOrder = (rows) => rows.slice().sort((a, b) => DEFAULT_KEY(b) - DEFAULT_KEY(a));
+
+  // ---- timeline ----
+  const SORT_HOVER = 1.55, SORT_CLICK = 1.85, SORT_MOVE = 0.4;
+  const TYPE0 = 2.75, KEY_GAP = 0.14;
+  const CLEAR = 5.05, BACK_GAP = 0.075;
+  const MENU_OPEN = 6.35, MENU_PICK = 7.05, DATA_FADE = 0.3;
+  const REFRESH_HOVER = 8.25, REFRESH_CLICK = 8.5;
+  const BACK_MENU = 9.35, BACK_PICK = 9.9;
+
+  const QUERY = "anthro";
+  const rowsEl = document.getElementById("rows");
+  const thead = document.getElementById("thead");
+  const tfoot = document.getElementById("tfoot");
+  const qEl = document.getElementById("q");
+  const caret = document.getElementById("caret");
+  const search = document.getElementById("search");
+  const period = document.getElementById("period");
+  const periodLabel = period.querySelector(".label");
+  const refresh = document.getElementById("refresh");
+  const tfootWrap = tfoot.parentElement;
+
+  // allocate row nodes once (both datasets share the same models; simple keyed cache)
+  const nodes = new Map();
+  function nodeFor(r) {
+    const key = label(r);
+    if (nodes.has(key)) return nodes.get(key);
+    const el = document.createElement("div");
+    el.className = "row grid";
+    const c = document.createElement("div");
+    c.className = "model";
+    const cells = [];
+    for (let i = 1; i < 9; i++) { const d = document.createElement("div"); cells.push(d); el.appendChild(d); }
+    el.prepend(c);
+    el.dataset.key = key;
+    el.style.opacity = "0";
+    rowsEl.appendChild(el);
+    const rec = { el, c, cells };
+    nodes.set(key, rec);
+    return rec;
+  }
+
+  function renderRow(rec, r) {
+    r.total = r.input + r.output + r.reasoning + r.cacheRead + r.cacheWrite;
+    rec.c.innerHTML = '<span class="prov">' + r.p + "</span>" + r.m;
+    rec.c.title = label(r);
+    rec.cells[0].textContent = nf.format(r.msgs);
+    rec.cells[1].textContent = nf.format(r.input);
+    rec.cells[2].textContent = nf.format(r.output);
+    rec.cells[3].textContent = nf.format(r.reasoning);
+    rec.cells[4].textContent = nf.format(r.cacheRead);
+    rec.cells[5].textContent = nf.format(r.cacheWrite);
+    rec.cells[6].textContent = nf.format(r.total);
+    rec.cells[6].classList.add("strong");
+    rec.cells[7].textContent = r.cost ? money(r.cost) : "0.00";
+  }
+
+  function setTotals(rows) {
+    const t = sum(rows);
+    tfoot.innerHTML =
+      '<div class="model">TOTAL</div>' +
+      "<div>" + nf.format(t.msgs) + "</div>" +
+      "<div>" + nf.format(t.input) + "</div>" +
+      "<div>" + nf.format(t.output) + "</div>" +
+      "<div>" + nf.format(t.reasoning) + "</div>" +
+      "<div>" + nf.format(t.cacheRead) + "</div>" +
+      "<div>" + nf.format(t.cacheWrite) + "</div>" +
+      "<div>" + nf.format(t.total) + "</div>" +
+      "<div>" + t.cost.toFixed(2) + "</div>";
+    document.getElementById("fresh").textContent =
+      "Fresh (input+output+reasoning): " + nf.format(t.input + t.output + t.reasoning);
+    document.getElementById("db").textContent = "Database: ~/.local/share/opencode/opencode.db";
+    return t;
+  }
+
+  for (const r of [...ALL, ...TODAY]) nodeFor(r);
+
+  const ths = [...thead.querySelectorAll(".th")];
+  const headFor = (k) => ths.find((x) => x.dataset.k === k);
+
+  function typingAt(t) {
+    if (t < TYPE0) return "";
+    const n = Math.floor((t - TYPE0) / KEY_GAP) + 1;
+    if (t < CLEAR) return QUERY.slice(0, clamp(n, 0, QUERY.length));
+    const m = Math.floor((t - CLEAR) / BACK_GAP);
+    return QUERY.slice(0, Math.max(0, QUERY.length - m));
+  }
+
+  function render(t) {
+    t = ((t % T) + T) % T;
+
+    const typing = typingAt(t);
+    const typed = t >= TYPE0 && t < CLEAR + QUERY.length * BACK_GAP + 0.25;
+
+    // period state
+    const isToday = t >= MENU_PICK && t < BACK_PICK;
+    const menuOpen = (t >= MENU_OPEN && t < MENU_PICK) || (t >= BACK_MENU && t < BACK_PICK + 0.12);
+    period.classList.toggle("open", menuOpen);
+    period.classList.toggle("focus", menuOpen || (t >= MENU_PICK - 0.12 && t < MENU_PICK));
+    periodLabel.textContent = isToday ? "Today" : "All time";
+    [...period.querySelectorAll(".menu div")].forEach((d) => {
+      const v = d.dataset.v;
+      const active = (v === "today" && isToday) || (v === "all" && !isToday);
+      d.classList.toggle("sel", active);
+      d.querySelector(".check").textContent = active ? "✓" : "";
+      d.classList.toggle("hover",
+        (menuOpen && v === "all" && t >= BACK_MENU) ||
+        (menuOpen && v === "today" && t >= MENU_OPEN && t < MENU_PICK));
+    });
+
+    // data, faded during period change
+    const fadeK = isToday
+      ? ease((t - MENU_PICK) / DATA_FADE)
+      : (t >= BACK_PICK ? ease((t - BACK_PICK) / DATA_FADE) : 1);
+    const base = isToday ? TODAY : ALL;
+    const datasetOpacity = isToday ? fadeK : (t >= BACK_PICK ? fadeK : 1);
+
+    // search filter + sort
+    const query = typing.trim().toLowerCase();
+    const filtered = query ? base.filter((r) => label(r).toLowerCase().includes(query)) : base.slice();
+
+    const sorted = (() => {
+      // before the click: default order; after: input desc
+      const byDefault = defaultOrder(filtered);
+      if (t < SORT_CLICK) return { rows: byDefault, k: 0 };
+      const moved = filtered.slice().sort((a, b) => b.input - a.input);
+      return { rows: moved, k: ease((t - SORT_CLICK) / SORT_MOVE) };
+    })();
+
+    // rows: positions interpolate between default order and sorted order
+    const visible = filtered;
+    const allNodes = [...nodes.values()];
+    for (const rec of allNodes) {
+      const r = base.find((x) => label(x) === rec.el.dataset.key);
+      const isVisible = !!r && filtered.some((x) => label(x) === rec.el.dataset.key);
+      rec.el.style.display = isVisible ? "" : "none";
+      if (r) renderRow(rec, r);
+    }
+
+    const k = sorted.k;
+    sorted.rows.forEach((r, i) => {
+      const rec = nodes.get(label(r));
+      const from = defaultOrder(filtered).findIndex((x) => label(x) === label(r));
+      const y = lerp(from, i, k) * ROW_H;
+      rec.el.style.transform = "translateY(" + y.toFixed(2) + "px)";
+      rec.el.style.opacity = String(datasetOpacity);
+      rec.el.classList.toggle("even", i % 2 === 1);
+      rec.el.style.zIndex = String(100 - i);
+    });
+
+    // intro stagger
+    const intro = (i) => ease((t + 0.22 - i * 0.03) / 0.4);
+    // apply after base opacity
+    sorted.rows.forEach((r, i) => {
+      const rec = nodes.get(label(r));
+      rec.el.style.opacity = String(datasetOpacity * intro(i) * (query ? 1 : 1));
+    });
+
+    // rows container height
+    const H = visible.length * ROW_H;
+    rowsEl.style.height = H + "px";
+    rowsEl.style.opacity = String(datasetOpacity);
+    tfootWrap.style.opacity = "1";
+
+    setTotals(visible);
+    [...tfoot.children].forEach((c) => { c.style.opacity = String(datasetOpacity); });
+
+    // header arrows & hover
+    ths.forEach((th) => {
+      th.classList.remove("hover", "clicked");
+      const a = th.querySelector(".arrow");
+      if (a) a.remove();
+    });
+    if (t >= SORT_CLICK - 0.001) {
+      const h = headFor("input");
+      const arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.textContent = "▼";
+      h.appendChild(arrow);
+    }
+    if (t >= SORT_HOVER && t < SORT_CLICK) headFor("input").classList.add("hover");
+    if (t >= SORT_CLICK && t < SORT_CLICK + 0.18) headFor("input").classList.add("clicked");
+
+    // search field
+    qEl.classList.toggle("empty", typing === "");
+    qEl.textContent = typing === "" ? "Search models" : typing;
+    search.classList.toggle("focus", typed);
+    caret.style.opacity = typed && (Math.floor((t - TYPE0) * 2.2) % 2 === 0 || typing === "") ? "1" : "0.15";
+
+    // refresh button
+    refresh.classList.toggle("hover", t >= REFRESH_HOVER && t < REFRESH_CLICK);
+    refresh.classList.toggle("busy", t >= REFRESH_CLICK && t < REFRESH_CLICK + 0.62);
+
+  }
+
+  window.__seek = (ms) => { render(ms / 1000); document.body.offsetHeight; };
+  window.__duration = T * 1000;
+  const still = Number(new URLSearchParams(location.search).get("t"));
+  render(Number.isFinite(still) && still > 0 ? still : 0);
+  requestAnimationFrame(() => { window.__ready = true; });
+})();
+</script>
+</body>
+</html>

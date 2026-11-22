@@ -7,6 +7,8 @@ Columns: model, messages, input, output, reasoning, cache read, cache write, tot
 Below the table: a TOTAL row and the "fresh" figure (input + output + reasoning). Filters:
 all time, today, 7 days, and optionally only the current session's project directory.
 
+![Token stats panel](preview/token-stats.gif)
+
 Русская версия: [README.ru.md](README.ru.md).
 
 ## Requirements
@@ -137,6 +139,10 @@ npm run watch     # rebuild on change; reloads the panel in every window
 `dist/` is tracked so that a plain `git clone` installs without a build. CI rebuilds it and
 fails when it differs from the committed bundle.
 
+The README animation is generated from a standalone replica of the panel:
+`node preview/render.mjs` (headless Chrome + ffmpeg) rewrites `preview/token-stats.gif` and
+`preview/token-stats.mp4`.
+
 Structure:
 
 | Path | Purpose |
@@ -147,6 +153,7 @@ Structure:
 | `src/gui.tsx` | GUI entry: panel, menu item, `/tokens` command, styles |
 | `src/gui/panel.tsx` | Solid view |
 | `src/gui/definition.ts`, `src/gui/i18n.ts` | declarations, en/ru copy |
+| `preview/index.html`, `preview/render.mjs` | animated README preview: panel replica and its frame renderer |
 
 Releases: bump `version` in `package.json`, add a `CHANGELOG.md` entry, tag `vX.Y.Z` and
 push the tag. The release workflow checks the tag against `package.json`, rebuilds, and
