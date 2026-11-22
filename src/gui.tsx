@@ -17,9 +17,11 @@ export default Plugin.define({
     }
 
     const panel: Panel = {
-      id: "tokens",
+      // The panel id keys the app's stored side width and its narrow-screen mobile view, so a width the user
+      // dragged under the old id is no longer read; the tab id and its `tokens` key are unchanged, so stored
+      // tabs survive.
+      id: "tokens-side",
       region: "side",
-      width: 560,
       mobile: {
         get title() {
           return ctx.t("panel.title")

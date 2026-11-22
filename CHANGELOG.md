@@ -4,6 +4,13 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions use
 [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The side panel no longer asks for a width of its own, so selecting its tab leaves the sidebar at the
+  shared width like the other tabs; a width an earlier version saved for the panel no longer applies.
+
 ## [0.3.0] - 2026-11-21
 
 ### Added
