@@ -242,6 +242,7 @@ export const panelCss = `
 .ts-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ts-switch { display: inline-flex; align-items: center; gap: 6px; }
 .ts-search { width: 170px; }
+.ts-toolbar > :last-child { margin-left: auto; }
 .ts-scroll { overflow: auto; flex: 1; }
 .ts-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .ts-table th, .ts-table td { padding: 2px 6px; text-align: right; white-space: nowrap; }
