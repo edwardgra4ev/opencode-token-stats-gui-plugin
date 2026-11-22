@@ -4,6 +4,12 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions use
 [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The **Refresh** button sits at the right edge of the toolbar instead of next to the search field.
+
 ## [0.3.1] - 2026-11-22
 
 ### Fixed
